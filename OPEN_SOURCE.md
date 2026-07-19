@@ -1,7 +1,7 @@
 # Open Source Readiness
 
-This repository is prepared for public release, but changing GitHub visibility
-is a separate maintainer action.
+This repository is public. Use this checklist before each release to keep the
+published source and deployment free of maintainer-owned credentials.
 
 ## Public Release Boundary
 
@@ -23,7 +23,7 @@ Do not commit or publish:
 - Local build output such as `.next/`, `.open-next/`, `.wrangler/`, and `node_modules/`.
 - Production-only WAF, billing, alerting, or abuse-response notes.
 
-## Pre-Public Checklist
+## Release Checklist
 
 Run these checks immediately before setting the GitHub repository public:
 
@@ -41,5 +41,3 @@ Expected state:
 - Tests, typecheck, and build pass.
 - The hosted app asks each visitor for their own DeepSeek API key and does not fall back to a server key.
 - `git status --short` is clean after committing.
-- GitHub repository visibility is still private until a maintainer explicitly
-  changes it.

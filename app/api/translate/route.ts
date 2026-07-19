@@ -51,6 +51,13 @@ function getClientKey(request: NextRequest) {
   return `${ip}:${clientId.slice(0, 80)}`;
 }
 
+function getUserApiKey(request: NextRequest) {
+  const authorization = request.headers.get("authorization")?.trim() || "";
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  const apiKey = match?.[1]?.trim() || "";
+  return apiKey.length <= 512 ? apiKey : "";
+}
+
 function getShanghaiDay(now: number) {
   return new Date(now + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
@@ -135,23 +142,6 @@ function checkRateLimit(key: string) {
   };
 }
 
-function demoResult(text: string, mode: ZhouliMode, level: ZhouliLevel) {
-  const subject = text.replace(/[。！？!?]+$/g, "");
-
-  const teachings: Record<ZhouliMode, string> = {
-    gentle: "当先观其处境，再辨其是非；能止争而不掩过，是名慈悲。",
-    debate: "当观其所言与所指是否相应；若名与实相离，纵言辞周密，亦不能成其道理。",
-    defend: "若此事尚有转圜，当守事实而行方便；方便不是颠倒黑白，是使人能改而事能成。",
-    lament: "一念若不觉察，便可能引出下一念；小事层层相续，也能结成难解之果。",
-  };
-  const conclusion =
-    level === "grand"
-      ? "佛复告须菩提：‘观一事，不应只执一人之善恶，应看其念从何起、言如何出、行结何果。能于初念处觉察，便能在大果未成之前止其因。’"
-      : "佛言：‘是故观其言行，当据其实，不增其事，亦不失其本意。’";
-
-  return `如是我闻。一时，佛在舍卫城。尔时，须菩提从座而起，合掌白佛言：‘世尊，今有一事，当云何观？’佛告须菩提：‘譬如有一人，作是言：『${subject}。』须菩提，于意云何？此言所指之人、所行之事与所求之意，可得相离不？’须菩提言：‘不也，世尊。若离其人、其事与其本意，便不是此言。’佛言：‘如是，如是。${teachings[mode]}’${conclusion}\n\n须菩提闻佛所说，欢喜信受，作礼而退。`;
-}
-
 const DEFAULT_FOJING_ENDING = "须菩提闻佛所说，欢喜信受，作礼而退。";
 const DEFAULT_FOJING_OPENING = "如是我闻。一时，佛在舍卫城。";
 
@@ -191,39 +181,6 @@ function removeCopiedCanonicalOpening(value: string) {
 
 function finalizeFojingResult(value: string) {
   return ensureFojingEnding(removeCopiedCanonicalOpening(value).trim());
-}
-
-function demoPlainResult(text: string, level: ZhouliLevel, plainMode: PlainMode = "direct") {
-  const normalized = text
-    .replace(/如是我闻|我曾听闻|我听说|若照因果来看|这样看来|难道不是|善知识|高僧|因果|业缘|体面/g, "")
-    .replace(/[，。！？；：、\s]+/g, " ")
-    .trim();
-  const short =
-    stripPlainPreamble(normalized.slice(0, 80)) || "这段话是在表达一个很简单的意思。";
-
-  if (level === "light") {
-    return short;
-  }
-
-  if (plainMode === "roast") {
-    return [
-      short,
-      "因果包装主要是在把真实意思说得不那么直。",
-    ].join("\n");
-  }
-
-  if (level === "grand") {
-    return [
-      short,
-      "那些古人、斋席和业缘，大多只是为了把一句普通话说得更郑重。",
-      "删掉包装后，重点是态度和诉求，不是典故本身。",
-    ].join("\n");
-  }
-
-  return [
-    short,
-    "删掉因果包装后，这就是一句正常人能直接听懂的话。",
-  ].join("\n");
 }
 
 const SHORT_PLAIN_RESULTS: Record<string, string> = {
@@ -808,6 +765,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const apiKey = getUserApiKey(request);
+  if (!apiKey) {
+    return NextResponse.json(
+      { error: "请先在网页中配置你自己的 DeepSeek API Key。" },
+      { status: 401 },
+    );
+  }
+
   const shortPlainResult = direction === "to_plain" ? getShortPlainResult(text) : "";
   if (shortPlainResult) {
     return NextResponse.json({
@@ -878,23 +843,6 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
-
-  if (!apiKey || apiKey === "sk-your-key-here") {
-    return NextResponse.json({
-      result:
-        direction === "to_plain"
-          ? demoPlainResult(text, level, plainMode)
-          : demoResult(text, mode, level),
-      model: "本地演示",
-      demo: true,
-      remaining: rate.remaining,
-      windowRemaining: rate.windowRemaining,
-      dailyRemaining: rate.dailyRemaining,
-      retryAfterSeconds: rate.retryAfterSeconds,
-    });
-  }
-
   try {
     const isPlainDirection = direction === "to_plain";
     const configuredMaxTokens = Number(process.env.MAX_OUTPUT_TOKENS || 2400);
@@ -942,6 +890,18 @@ export async function POST(request: NextRequest) {
 
       if (!response.ok) {
         console.error("DeepSeek API error:", data);
+        if (response.status === 401 || response.status === 403) {
+          return NextResponse.json(
+            { error: "API Key 无效、已过期或没有调用权限。" },
+            { status: 401 },
+          );
+        }
+        if (response.status === 429) {
+          return NextResponse.json(
+            { error: "你的 API 账户额度不足或请求过于频繁，请稍后再试。" },
+            { status: 429 },
+          );
+        }
         return NextResponse.json(
           { error: "高僧暂未回应，请稍后再试。" },
           { status: 502 },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Eye, EyeOff, KeyRound, Trash2, X } from "lucide-react";
 import { buildCardDownloadFilename } from "@/lib/cardDownload";
 import type {
   PlainMode,
@@ -127,7 +128,9 @@ const plainExamples = [
 const originalSiteUrl = "https://hehuzhouli.com/";
 const originalRepoUrl = "https://github.com/Aspirin0000/zhouli-translator";
 const originalVideoUrl = originalSiteUrl;
-const githubUrl = originalRepoUrl;
+const projectRepoUrl = "https://github.com/lizi605/rushi-wowen-translator";
+const githubUrl = projectRepoUrl;
+const API_KEY_STORAGE_KEY = "rushi-wowen-deepseek-api-key";
 
 const loadingLines = [
   "正在分出原文事件节点",
@@ -322,6 +325,7 @@ async function fetchTranslateWithRetry(
     direction: ZhouliDirection;
   },
   clientId: string,
+  apiKey: string,
 ) {
   const retryDelays = [700, 1600];
   let lastError: unknown;
@@ -333,6 +337,7 @@ async function fetchTranslateWithRetry(
         {
           method: "POST",
           headers: {
+            Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
             "x-client-id": clientId,
           },
@@ -367,7 +372,11 @@ export default function Home() {
   const [skillFullCopied, setSkillFullCopied] = useState(false);
   const [skillFullText, setSkillFullText] = useState("");
   const [skillCopyError, setSkillCopyError] = useState("");
-  const [isDemo, setIsDemo] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [apiKeyDraft, setApiKeyDraft] = useState("");
+  const [apiConfigOpen, setApiConfigOpen] = useState(false);
+  const [apiConfigError, setApiConfigError] = useState("");
+  const [showApiKey, setShowApiKey] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
   const [dailyRemaining, setDailyRemaining] = useState<number | null>(null);
   const [retryAfterSeconds, setRetryAfterSeconds] = useState<number | null>(null);
@@ -392,6 +401,29 @@ export default function Home() {
   const activeLoadingLines = isPlainDirection ? plainLoadingLines : loadingLines;
   const activeLevels = isPlainDirection ? plainLevels : levels;
   const activeDirectionVerb = isPlainDirection ? "解经" : "译经";
+
+  useEffect(() => {
+    const storedApiKey = window.localStorage.getItem(API_KEY_STORAGE_KEY)?.trim() || "";
+    setApiKey(storedApiKey);
+    setApiKeyDraft(storedApiKey);
+  }, []);
+
+  useEffect(() => {
+    if (!apiConfigOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setApiConfigOpen(false);
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [apiConfigOpen]);
 
   useEffect(() => {
     if (!loading) return;
@@ -475,6 +507,10 @@ export default function Home() {
         : "译经太急，山门暂闭，请稍后再来。";
     }
 
+    if (response.status === 401) {
+      return "API Key 无效、已过期或没有调用权限，请重新配置。";
+    }
+
     if (response.status === 403) {
       return "山门暂设盘查，请稍后再试。";
     }
@@ -484,6 +520,13 @@ export default function Home() {
 
   async function translate() {
     if (!text.trim() || loading) return;
+    if (!apiKey.trim()) {
+      setApiKeyDraft("");
+      setApiConfigError("");
+      setApiConfigOpen(true);
+      setError("请先配置你自己的 DeepSeek API Key。");
+      return;
+    }
     setLoading(true);
     setLoadingIndex(0);
     setError("");
@@ -493,6 +536,7 @@ export default function Home() {
       const response = await fetchTranslateWithRetry(
         { text: text.trim(), mode, plainMode, level, direction },
         getClientId(),
+        apiKey,
       );
 
       const data = await readJsonResponse(response);
@@ -502,7 +546,6 @@ export default function Home() {
       }
 
       setResult(data.result);
-      setIsDemo(Boolean(data.demo));
       window.setTimeout(() => {
         resultRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -520,6 +563,36 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function openApiConfig() {
+    setApiKeyDraft(apiKey);
+    setApiConfigError("");
+    setShowApiKey(false);
+    setApiConfigOpen(true);
+  }
+
+  function saveApiConfig() {
+    const nextApiKey = apiKeyDraft.trim();
+    if (!nextApiKey) {
+      setApiConfigError("请输入有效的 API Key。");
+      return;
+    }
+
+    window.localStorage.setItem(API_KEY_STORAGE_KEY, nextApiKey);
+    setApiKey(nextApiKey);
+    setApiConfigError("");
+    setError("");
+    setApiConfigOpen(false);
+  }
+
+  function clearApiConfig() {
+    window.localStorage.removeItem(API_KEY_STORAGE_KEY);
+    setApiKey("");
+    setApiKeyDraft("");
+    setApiConfigError("");
+    setShowApiKey(false);
+    setResult("");
   }
 
   async function copyResult() {
@@ -904,9 +977,114 @@ export default function Home() {
         <nav aria-label="页面导航">
           <a href="#translator">译经解经</a>
           <a href={originalSiteUrl} target="_blank" rel="noreferrer">原作致谢</a>
+          <a href={projectRepoUrl} target="_blank" rel="noreferrer">开源下载</a>
         </nav>
-        <span className="header-note">DeepSeek V4 · 已接入</span>
+        <button
+          className={`api-config-trigger ${apiKey ? "configured" : ""}`}
+          type="button"
+          onClick={openApiConfig}
+          aria-label={apiKey ? "API Key 已配置，点击修改" : "配置 API Key"}
+          title={apiKey ? "API Key 已配置，点击修改" : "配置 API Key"}
+        >
+          <KeyRound aria-hidden="true" />
+          <span>{apiKey ? "API 已配置" : "配置 API"}</span>
+          <i aria-hidden="true" />
+        </button>
       </header>
+
+      {apiConfigOpen && (
+        <div
+          className="api-config-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setApiConfigOpen(false);
+          }}
+        >
+          <section
+            className="api-config-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="api-config-title"
+          >
+            <div className="api-config-heading">
+              <div>
+                <span>BYOK · 自备密钥</span>
+                <h2 id="api-config-title">配置 DeepSeek API</h2>
+              </div>
+              <button
+                className="api-dialog-icon-button"
+                type="button"
+                onClick={() => setApiConfigOpen(false)}
+                aria-label="关闭 API 配置"
+                title="关闭"
+              >
+                <X aria-hidden="true" />
+              </button>
+            </div>
+
+            <p className="api-config-description">
+              本站不提供公共 Key。你的 Key 仅保存在当前浏览器，翻译时经本站后端临时转发给 DeepSeek，不会写入服务器配置或 GitHub。
+            </p>
+
+            <label className="api-key-field" htmlFor="deepseek-api-key">
+              <span>DeepSeek API Key</span>
+              <div>
+                <input
+                  id="deepseek-api-key"
+                  type={showApiKey ? "text" : "password"}
+                  value={apiKeyDraft}
+                  onChange={(event) => {
+                    setApiKeyDraft(event.target.value);
+                    setApiConfigError("");
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") saveApiConfig();
+                  }}
+                  placeholder="sk-..."
+                  autoComplete="off"
+                  spellCheck={false}
+                  autoFocus
+                />
+                <button
+                  className="api-key-visibility"
+                  type="button"
+                  onClick={() => setShowApiKey((current) => !current)}
+                  aria-label={showApiKey ? "隐藏 API Key" : "显示 API Key"}
+                  title={showApiKey ? "隐藏 API Key" : "显示 API Key"}
+                >
+                  {showApiKey ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                </button>
+              </div>
+            </label>
+
+            {apiConfigError && <p className="api-config-error">{apiConfigError}</p>}
+
+            <div className="api-config-links">
+              <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noreferrer">
+                前往 DeepSeek 获取 Key
+                <Icon name="arrow" />
+              </a>
+              <span>共享设备使用完毕后请清除本机 Key。</span>
+            </div>
+
+            <div className="api-config-actions">
+              <button
+                className="api-clear-button"
+                type="button"
+                onClick={clearApiConfig}
+                disabled={!apiKey && !apiKeyDraft}
+              >
+                <Trash2 aria-hidden="true" />
+                清除本机 Key
+              </button>
+              <button className="api-save-button" type="button" onClick={saveApiConfig}>
+                <Check aria-hidden="true" />
+                保存配置
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       <section className="hero entry-hero" id="top" aria-labelledby="intro-title">
         <div className="hero-kicker">
@@ -1012,7 +1190,6 @@ export default function Home() {
                     setResult("");
                     setError("");
                     setCopied(false);
-                    setIsDemo(false);
                   }}
                 >
                   <strong>{item.title}</strong>
@@ -1206,11 +1383,9 @@ export default function Home() {
                 </div>
                 <div className="result-meta">
                   <span>
-                    {isDemo
-                      ? "本地演示 · 配置 API 后启用大模型"
-                      : isPlainDirection
-                        ? "DeepSeek 解经僧已阅"
-                        : "DeepSeek 高僧已阅"}
+                    {isPlainDirection
+                      ? "使用你的 DeepSeek API Key 解经"
+                      : "使用你的 DeepSeek API Key 译经"}
                   </span>
 	                  {remaining !== null && (
 	                    <span>
@@ -1253,6 +1428,14 @@ export default function Home() {
           <a href={originalRepoUrl} target="_blank" rel="noreferrer">
             查看原项目
             <Icon name="arrow" />
+          </a>
+          <a href={projectRepoUrl} target="_blank" rel="noreferrer">
+            本站源码
+            <Icon name="arrow" />
+          </a>
+          <a href="/downloads/speak-fojing-skill.zip" download>
+            下载 Skill
+            <Icon name="download" />
           </a>
         </div>
       </footer>

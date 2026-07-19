@@ -3,6 +3,11 @@ import path from "node:path";
 
 const baselinePath = process.argv[2] ?? "scripts/fojing-batch-sample.json";
 const endpoint = process.env.FOJING_TEST_ENDPOINT ?? "http://localhost:3000/api/translate";
+const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
+
+if (!apiKey) {
+  throw new Error("Set DEEPSEEK_API_KEY before running the batch test.");
+}
 
 const baseline = JSON.parse(await fs.readFile(baselinePath, "utf8"));
 const payloads = baseline.results.map(({ text, mode, level }) => ({
@@ -156,6 +161,7 @@ async function callOne(index) {
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
+          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
           "x-client-id": `fojing-after-fix-${Date.now()}-${index}-${attempt}`,
         },

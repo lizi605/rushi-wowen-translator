@@ -8,7 +8,7 @@ is a separate maintainer action.
 Safe to publish:
 
 - Next.js app source code.
-- DeepSeek API integration code.
+- DeepSeek BYOK proxy code. Each visitor supplies their own API key in the browser.
 - Prompt construction logic.
 - The downloadable `speak-fojing` Skill package.
 - Public images and static download files.
@@ -17,6 +17,7 @@ Safe to publish:
 Do not commit or publish:
 
 - Real `.env`, `.env.local`, or `.dev.vars` files.
+- Any shared or maintainer-owned DeepSeek API key. The deployed app must remain BYOK-only.
 - API keys, Cloudflare API tokens, account IDs, service tokens, or session data.
 - Private test logs under `test-runs/`.
 - Local build output such as `.next/`, `.open-next/`, `.wrangler/`, and `node_modules/`.
@@ -38,6 +39,7 @@ Expected state:
 
 - `npm run public:audit` reports no obvious secrets in tracked text files.
 - Tests, typecheck, and build pass.
+- The hosted app asks each visitor for their own DeepSeek API key and does not fall back to a server key.
 - `git status --short` is clean after committing.
 - GitHub repository visibility is still private until a maintainer explicitly
   changes it.

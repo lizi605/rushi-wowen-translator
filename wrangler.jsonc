@@ -4,16 +4,6 @@
   "workers_dev": true,
   "preview_urls": true,
   "main": ".open-next/worker.js",
-  "routes": [
-    {
-      "pattern": "fojing.example.com",
-      "custom_domain": true
-    },
-    {
-      "pattern": "www.fojing.example.com",
-      "custom_domain": true
-    }
-  ],
   "compatibility_date": "2026-06-22",
   "compatibility_flags": [
     "nodejs_compat",
@@ -31,6 +21,7 @@
   ],
   "vars": {
     "DEEPSEEK_MODEL": "deepseek-v4-flash",
+    "DEEPSEEK_REVIEW_MODEL": "deepseek-v4-pro",
     "MAX_OUTPUT_TOKENS": "2400"
   }
 }

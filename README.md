@@ -7,7 +7,7 @@
 - 译经：把普通中文改写成近期中文互联网流行的“佛经体 / 佛说体”白话翻译腔。
 - 解经：把佛经体翻回直接、清楚、正常的人话。
 
-如果没有配置 API Key，应用会使用本地演示文案，仍然可以预览界面和交互。
+项目采用 BYOK（Bring Your Own Key）模式：本站不提供公共模型额度，使用者在网页中配置自己的 DeepSeek API Key 后即可译经或解经。
 
 ## 功能
 
@@ -17,7 +17,7 @@
 | 译经模式 | 慈悲开示、机锋辩难、方便圆说、无常悲叹 |
 | 解经模式 | 直白释义、耐心讲明、潜台词版、锐评拆穿 |
 | 三档长度 | 一偈 / 一经 / 一论 与 略释 / 明释 / 详释 |
-| 演示模式 | 没有 API Key 时返回本地示例结果 |
+| BYOK | API Key 仅保存在使用者当前浏览器，服务端不提供公共 Key |
 | Skill 分发 | 支持复制或下载 `speak-fojing` Skill |
 | 图片导出 | 将译经或解经结果导出为图片卡片 |
 
@@ -34,7 +34,7 @@ Input:
 Output style:
 
 ```text
-如是我闻。一时，须菩提白佛言：“世尊，今日所谓疯狂星期四者，有人欲求友人请其一斋，此念云何？”佛告须菩提：“譬如有一人，见炸鸡之食，向众友问言：‘谁愿请我一斋，方合今日佛理？’须菩提，于意云何？彼人是真求佛理，抑或求一餐之饱？”须菩提言：“世尊，实是求食，借佛理以成其趣。”佛言：“如是。能直言所求，又以诙谐使人无迫，是名方便；若以功德逼人请客，则非方便。”
+如是我闻。一时，佛在舍卫城。尔时，须菩提从座而起，合掌白佛言：“世尊，今日所谓疯狂星期四者，有人欲求友人请其一斋，此念云何？”佛告须菩提：“譬如有一人，见炸鸡之食，向众友问言：‘谁愿请我一斋，方合今日佛理？’须菩提，于意云何？彼人是真求佛理，抑或求一餐之饱？”须菩提言：“世尊，实是求食，借佛理以成其趣。”佛言：“如是。能直言所求，又以诙谐使人无迫，是名方便；若以功德逼人请客，则非方便。”
 ```
 
 ### 解经示例
@@ -56,29 +56,29 @@ Output style:
 Requirements:
 
 - Node.js 20 or newer.
-- An OpenAI-compatible chat completions API key for real generation.
+- A DeepSeek API key supplied by the person using the browser.
 
 Run locally:
 
 ```bash
 npm install
-cp .env.example .env.local
 npm run dev
 ```
 
 Open <http://localhost:3000>.
 
-`.env.local` example:
+打开网页后点击右上角“配置 API”，填入自己的 DeepSeek API Key。Key 会保存在当前浏览器的 `localStorage` 中。
+
+服务端只需要模型路由配置；这些变量不包含公共 Key：
 
 ```env
-DEEPSEEK_API_KEY=sk-your-key-here
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-v4-flash
 DEEPSEEK_REVIEW_MODEL=deepseek-v4-pro
 MAX_OUTPUT_TOKENS=2400
 ```
 
-`DEEPSEEK_BASE_URL` is expected to be the provider base URL, not the full `/chat/completions` path. If `DEEPSEEK_API_KEY` is missing or left as a placeholder, the app falls back to demo output.
+`DEEPSEEK_BASE_URL` should be the provider base URL, not the full `/chat/completions` path. The hosted service does not read `DEEPSEEK_API_KEY` from server environment variables.
 
 ## Project Structure
 
@@ -102,19 +102,20 @@ skill-package/
 
 ## Runtime Flow
 
-1. The browser submits `text`, `direction`, `mode`, `plainMode`, `level`, and a client id to `/api/translate`.
-2. The server validates input length, direction, mode, plainMode, and level.
-3. A lightweight in-memory rate limiter checks the request.
-4. The server builds a direction-specific system prompt plus a user prompt.
-5. The API provider returns a candidate response.
-6. The server cleans common failure patterns and returns JSON.
+1. The browser reads the user-supplied API Key from local storage and sends it in the standard `Authorization` header for that request.
+2. The browser submits `text`, `direction`, `mode`, `plainMode`, `level`, and a client id to `/api/translate`.
+3. The server validates the API Key header, input length, direction, mode, plainMode, and level.
+4. A lightweight in-memory rate limiter checks the request.
+5. The server temporarily forwards the Key and generated prompt to DeepSeek. It does not persist the Key.
+6. The API provider returns a candidate response.
+7. The server cleans common failure patterns and returns JSON.
 
 Default runtime choices:
 
 - Model: `deepseek-v4-flash`.
 - User input limit: 500 Chinese characters for 译经, 3000 Chinese characters for 解经. Longer stories should be split at natural plot boundaries and translated in multiple passes.
 - Output limit: configured by `MAX_OUTPUT_TOKENS`.
-- API key scope: server only, never sent to the browser.
+- API key scope: stored in the user's browser, sent over HTTPS per request, used in memory by the proxy, and not persisted by the application.
 
 ## Speak Fojing Skill
 
@@ -156,16 +157,15 @@ npm run build
 ```bash
 npm install
 npx wrangler login
-npx wrangler secret put DEEPSEEK_API_KEY
 npm run deploy
 ```
 
-Before deploying, replace the placeholder routes in `wrangler.jsonc` with your real domain.
+No custom domain is required. Cloudflare provides a public `workers.dev` address. Users configure their own Key in the deployed page.
 
 ### Vercel
 
 1. Import the repository into Vercel.
-2. Add `DEEPSEEK_API_KEY`, `DEEPSEEK_BASE_URL`, `DEEPSEEK_MODEL`, `DEEPSEEK_REVIEW_MODEL`, and `MAX_OUTPUT_TOKENS`.
+2. Optionally add `DEEPSEEK_BASE_URL`, `DEEPSEEK_MODEL`, `DEEPSEEK_REVIEW_MODEL`, and `MAX_OUTPUT_TOKENS`. Do not add a shared API Key.
 3. Deploy.
 
 ### Self-Hosted Node
@@ -179,6 +179,9 @@ npm run start
 ## Security Notes
 
 - Never commit real `.env`, `.env.local`, or `.dev.vars` files.
+- Never add a shared production API Key to hosting environment variables.
+- Browser-stored Keys are suitable for personal devices. Clear the Key after using a shared computer.
+- The proxy receives the Key transiently in order to call DeepSeek; deploy only over HTTPS and do not log authorization headers.
 - Keep private request logs and batch outputs outside Git.
 - Add shared rate limiting before high-traffic public deployments.
 - Configure billing alerts on the model provider and hosting platform.

@@ -20,6 +20,10 @@ const routeSource = () =>
   readFileSync(new URL("../app/api/translate/route.ts", import.meta.url), "utf8");
 const cssSource = () =>
   readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+const envExampleSource = () =>
+  readFileSync(new URL("../.env.example", import.meta.url), "utf8");
+const wranglerSource = () =>
+  readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8");
 
 test("website copy presents translate and explain as paired directions", () => {
   const source = pageSource();
@@ -147,6 +151,24 @@ test("fojing conversion uses a stable sutra-style opening", () => {
   assert.doesNotMatch(route, /"如是我闻。一时，佛与须菩提共坐/);
 });
 
+test("public website uses browser-owned API keys instead of a shared server key", () => {
+  const page = pageSource();
+  const route = routeSource();
+  const envExample = envExampleSource();
+  const wrangler = wranglerSource();
+
+  assert.match(page, /rushi-wowen-deepseek-api-key/);
+  assert.match(page, /window\.localStorage\.setItem/);
+  assert.match(page, /Authorization: `Bearer \$\{apiKey\}`/);
+  assert.match(page, /配置 DeepSeek API/);
+  assert.match(page, /清除本机 Key/);
+  assert.match(route, /function getUserApiKey/);
+  assert.match(route, /请先在网页中配置你自己的 DeepSeek API Key/);
+  assert.doesNotMatch(route, /process\.env\.DEEPSEEK_API_KEY/);
+  assert.doesNotMatch(envExample, /^DEEPSEEK_API_KEY=/m);
+  assert.doesNotMatch(wrangler, /example\.com/);
+});
+
 test("page hides retired sections and links to the original project", () => {
   const source = pageSource();
   const css = cssSource();
@@ -154,5 +176,7 @@ test("page hides retired sections and links to the original project", () => {
   assert.match(source, /className="attribution-footer"/);
   assert.match(source, /https:\/\/hehuzhouli\.com\//);
   assert.match(source, /https:\/\/github\.com\/Aspirin0000\/zhouli-translator/);
+  assert.match(source, /https:\/\/github\.com\/lizi605\/rushi-wowen-translator/);
+  assert.match(source, /\/downloads\/speak-fojing-skill\.zip/);
   assert.match(css, /\.skill-section,[\s\S]*\.attribution-footer ~ footer[\s\S]*display: none/);
 });

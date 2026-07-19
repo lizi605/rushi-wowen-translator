@@ -1,0 +1,4 @@
+interface:
+  display_name: "「如是我闻」翻译器"
+  short_description: "将现代中文改写为高赞评论式、白话易懂的佛经翻译腔风格"
+  default_prompt: "使用 $speak-fojing，只参考佛经问答格式，把这句话改写成佛经白话翻译腔；开示的道理必须来自原文内容。"

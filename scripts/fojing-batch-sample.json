@@ -1,0 +1,19 @@
+{
+  "results": [
+    {
+      "text": "疯狂星期四，谁愿请我一斋才合乎佛理",
+      "mode": "defend",
+      "level": "light"
+    },
+    {
+      "text": "朋友借钱不还，我该怎么温言相劝",
+      "mode": "gentle",
+      "level": "standard"
+    },
+    {
+      "text": "有人说会议纪要没人看，这句话怎么评价",
+      "mode": "debate",
+      "level": "standard"
+    }
+  ]
+}

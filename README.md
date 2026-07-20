@@ -4,6 +4,8 @@
 
 在线使用：<https://fojing-translator.1798859537.workers.dev>
 
+AI 二次开发交接：[制作《圣经》文体翻译器](./AI_HANDOFF_BIBLE_TRANSLATOR.md)
+
 「如是我闻」翻译器是一个 Next.js 网页应用。它支持两种方向：
 
 - 译经：把普通中文改写成近期中文互联网流行的“佛经体 / 佛说体”白话翻译腔。

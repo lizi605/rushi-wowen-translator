@@ -50,16 +50,16 @@
   <line x1="392.80" y1="124" x2="392.80" y2="392" stroke="#ead6b7" stroke-opacity="0.54"/>
   <text x="392.80" y="446" text-anchor="middle" fill="#7a6247" font-family="Songti SC, STSong, SimSun, serif" font-size="14">七月二十九</text>
   <line x1="529.20" y1="124" x2="529.20" y2="392" stroke="#ead6b7" stroke-opacity="0.54"/>
-  <text x="529.20" y="446" text-anchor="middle" fill="#7a6247" font-family="Songti SC, STSong, SimSun, serif" font-size="14">八月初二</text>
+  <text x="529.20" y="446" text-anchor="middle" fill="#7a6247" font-family="Songti SC, STSong, SimSun, serif" font-size="14">八月初三</text>
   <line x1="665.60" y1="124" x2="665.60" y2="392" stroke="#ead6b7" stroke-opacity="0.54"/>
   <text x="665.60" y="446" text-anchor="middle" fill="#7a6247" font-family="Songti SC, STSong, SimSun, serif" font-size="14">八月初七</text>
   <line x1="802.00" y1="124" x2="802.00" y2="392" stroke="#ead6b7" stroke-opacity="0.54"/>
   <text x="802.00" y="446" text-anchor="middle" fill="#7a6247" font-family="Songti SC, STSong, SimSun, serif" font-size="14">八月十一</text>
   <line x1="120" y1="392" x2="802" y2="392" stroke="#6c4f2e" stroke-width="1.6"/>
   <line x1="120" y1="124" x2="120" y2="392" stroke="#6c4f2e" stroke-width="1.6"/>
-  <polygon points="120.00,392.00 120.00,392.00 134.66,365.20 170.14,338.40 229.80,311.60 234.70,284.80 239.29,258.00 317.87,231.20 802.00,231.20 802.00,392.00" fill="url(#area)"/>
-  <polyline points="120.00,392.00 134.66,365.20 170.14,338.40 229.80,311.60 234.70,284.80 239.29,258.00 317.87,231.20 802.00,231.20" fill="none" stroke="#f3d7a2" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.72"/>
-  <polyline points="120.00,392.00 134.66,365.20 170.14,338.40 229.80,311.60 234.70,284.80 239.29,258.00 317.87,231.20 802.00,231.20" fill="none" stroke="url(#line)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="317.87" cy="231.20" r="7" fill="#9e3228" stroke="#f7ead1" stroke-width="3"/>
+  <polygon points="120.00,392.00 120.00,392.00 134.49,365.20 169.57,338.40 228.56,311.60 233.40,284.80 237.94,258.00 315.63,231.20 802.00,231.20 802.00,392.00" fill="url(#area)"/>
+  <polyline points="120.00,392.00 134.49,365.20 169.57,338.40 228.56,311.60 233.40,284.80 237.94,258.00 315.63,231.20 802.00,231.20" fill="none" stroke="#f3d7a2" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.72"/>
+  <polyline points="120.00,392.00 134.49,365.20 169.57,338.40 228.56,311.60 233.40,284.80 237.94,258.00 315.63,231.20 802.00,231.20" fill="none" stroke="url(#line)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="315.63" cy="231.20" r="7" fill="#9e3228" stroke="#f7ead1" stroke-width="3"/>
   <text x="460" y="494" text-anchor="middle" fill="#9b8361" font-family="Songti SC, STSong, SimSun, serif" font-size="12">据 GitHub 公开赐星时刻绘制</text>
 </svg>
